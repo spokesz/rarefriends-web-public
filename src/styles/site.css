@@ -6,3 +6,7 @@
 @import "./features/friend-panel.css";
 @import "./features/auction.css";
 @import "./features/docs.css";
+@import "./features/create.css";
+@import "./features/create-leaderboard.css";
+@import "./features/create-fishing.css";
+@import "./features/create-fishing-reveal.css";
