@@ -55,7 +55,7 @@ function toggleTheme() {
 
 export function AppFrame({ children }: { children: ReactNode }) {
   const path = usePathname();
-  const isDocs = path === "/docs" || path.startsWith("/docs/");
+  const isContentPage = path === "/vibeathon" || path === "/hackathon" || path === "/create" || path === "/docs" || path.startsWith("/docs/");
   const wallet = usePublicWallet();
   const { config, error, busy } = useProtocol();
   const [walletOpen, setWalletOpen] = useState(false);
@@ -70,7 +70,7 @@ export function AppFrame({ children }: { children: ReactNode }) {
       </nav>
       <div className="app-header-wallet"><button className="app-theme-toggle" type="button" aria-label={siteContent.theme.label} aria-pressed={dark} title={dark ? siteContent.theme.light : siteContent.theme.dark} onClick={toggleTheme}><Icon name="moon" size={16} /><span>{siteContent.theme.label}</span></button><Button size="lg" variant="primary" icon="wallet" preserveCase={Boolean(wallet.address)} disabled={busy} onClick={openWallet}>{wallet.connecting ? siteContent.wallet.connecting : wallet.address ? shortAddress(wallet.address) : siteContent.wallet.connect}</Button></div>
     </header>
-    {!isDocs && !config && error && <div className="app-chain-status" role="status">{error}</div>}
+    {!isContentPage && !config && error && <div className="app-chain-status" role="status">{error}</div>}
     <WalletDialogContext.Provider value={openWallet}><main id="main">{children}</main></WalletDialogContext.Provider>
     <footer className="app-footer">
       <Link href="/" className="app-brand"><FriendSprite specimen={4} size={24} /><span>{siteContent.wordmark}</span></Link>

@@ -58,6 +58,9 @@ Self-hosted builds generate Next.js standalone output. Vercel uses the included 
 app/                    Next.js pages, metadata and API route handlers
   api/protocol/         Protocol HTTP endpoints
   api/wallet/           Wallet network and connection configuration
+  create/               Redirect to the vibeathon
+  hackathon/            Redirect to the vibeathon
+  vibeathon/            Vibeathon page and local fishing demo
   docs/                 Documentation routes
   launch/               Auction route
   portfolio/            Portfolio route
@@ -70,6 +73,7 @@ src/
   content/              Editable page copy, navigation and documentation
   features/
     auction/            Auction components, reads and bidding behavior
+    create/             Vibeathon page, AI starter prompt, and local demo
     docs/               Documentation rendering and illustrations
     home/               Homepage and swap interface
     portfolio/          Holdings, friends and rewards
@@ -96,6 +100,7 @@ Browser components use `src/lib/protocol/` for shared chain operations and call 
 | Homepage and swap copy | `src/content/home.ts` |
 | Auction copy | `src/content/auction.ts` |
 | Portfolio copy | `src/content/portfolio.ts` |
+| Vibeathon page, starter prompt, and leaderboard copy | `src/content/create.ts` |
 | Transaction reviews and wallet confirmations | `src/content/transactions.ts` |
 | Wallet connection and network details | `src/content/wallet.ts` |
 | Documentation chapters | `src/content/docs.ts` |

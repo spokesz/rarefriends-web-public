@@ -1,0 +1,65 @@
+.create-fishing-float-art { width: 144px; height: 120px; margin-inline: auto; color: var(--ink); }
+.create-fishing-float-art svg { display: block; width: 100%; height: 100%; overflow: clip; }
+.create-fishing-bite-marks { opacity: 0; }
+.create-fishing-float-art[data-waiting="true"] .create-fishing-float { animation: create-float-bob 1.9s ease-in-out infinite; }
+.create-fishing-float-art[data-waiting="true"] .create-fishing-float-water { animation: create-float-water 1.9s steps(2, end) infinite; }
+.create-fishing-float-art[data-bite="true"] .create-fishing-float { animation: create-float-bite .42s steps(2, end) infinite; }
+.create-fishing-float-art[data-bite="true"] .create-fishing-bite-marks { opacity: 1; }
+
+.create-fishing-reveal { --reveal-accent: var(--ink); position: relative; width: min(380px, 100%); height: 210px; min-width: 0; min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr); overflow: clip; contain: layout paint; container: fishing-reveal / size; color: var(--ink); }
+.create-fishing[data-color="true"] .create-fishing-reveal { --reveal-accent: #f2ce68; }
+.create-fishing-reveal[data-skip-control="true"] { grid-template-rows: minmax(0, 1fr) 32px; }
+.create-catch-scene { position: relative; min-width: 0; min-height: 0; overflow: clip; contain: layout paint; pointer-events: none; }
+.create-catch-scene * { overflow: clip; }
+.create-catch-silhouette svg, .create-catch-item > * { display: block; width: 100%; height: 100%; max-width: 100%; max-height: 100%; object-fit: contain; image-rendering: pixelated; }
+.create-catch-item { position: absolute; left: 50%; top: 50%; width: 82%; height: 92%; transform: translate(-50%, -50%); overflow: clip; contain: layout paint; z-index: 2; }
+.create-fishing-reveal[data-reveal-phase="reveal"] .create-catch-item { animation: create-catch-settle 740ms cubic-bezier(.2, .7, .24, 1) both; }
+.create-catch-halo { position: absolute; left: 50%; top: 50%; width: min(48cqw, 65cqh); aspect-ratio: 1; border: 2px solid currentColor; opacity: 0; transform: translate(-50%, -50%) rotate(45deg); }
+.create-fishing-reveal:is([data-rarity="rare"], [data-rarity="epic"], [data-rarity="legendary"], [data-rarity="mythic"]) .create-catch-halo { color: var(--reveal-accent); border-width: 3px; }
+.create-fishing-reveal[data-reveal-phase="reveal"] .create-catch-halo { animation: create-catch-halo 840ms ease-out both; }
+.create-catch-particles { position: absolute; inset: 0; overflow: clip; }
+.create-catch-particles i { position: absolute; left: 50%; top: 50%; width: 4px; height: 4px; opacity: 0; background: currentColor; --particle-angle: calc(var(--particle-index) / var(--particle-count) * 360deg); --particle-distance: min(36cqw, 40cqh); }
+.create-catch-particles i:nth-child(3n) { width: 3px; height: 8px; }
+.create-fishing-reveal:is([data-rarity="rare"], [data-rarity="epic"], [data-rarity="legendary"], [data-rarity="mythic"]) .create-catch-particles i { background: var(--reveal-accent); box-shadow: 0 0 0 1px var(--ink); }
+.create-fishing-reveal[data-rarity="common"] .create-catch-particles i { width: 3px; height: 3px; }
+.create-fishing-reveal[data-reveal-phase="reveal"] .create-catch-particles i { animation: create-catch-pixel 900ms cubic-bezier(.16, .7, .3, 1) both; animation-delay: calc(var(--particle-index) * 10ms); }
+.create-catch-announcement { position: absolute; width: 1px; height: 1px; padding: 0; overflow: clip; clip-path: inset(50%); white-space: nowrap; }
+.create-catch-skip { width: 100%; min-width: 0; overflow: clip; }
+.create-catch-tension, .create-catch-splash { position: absolute; inset: 0; min-width: 0; min-height: 0; overflow: clip; contain: layout paint; }
+.create-catch-water, .create-catch-rig { position: absolute; inset: 0; width: 100%; height: 100%; }
+.create-catch-rig { overflow: clip; contain: layout paint; }
+.create-catch-rig > * { width: 100%; height: 100%; max-width: 100%; max-height: 100%; }
+.create-catch-waterline { opacity: .5; }
+.create-catch-line { transform-origin: 160px 136px; animation: create-catch-tug 720ms cubic-bezier(.2, .7, .2, 1) both; }
+.create-catch-rings ellipse { opacity: 0; transform-origin: 160px 138px; }
+.create-fishing-reveal[data-reveal-phase="splash"] .create-catch-rings ellipse { animation: create-catch-ring 720ms ease-out both; }
+.create-fishing-reveal[data-reveal-phase="splash"] .create-catch-rings ellipse:nth-child(2) { animation-delay: 80ms; }
+.create-fishing-reveal[data-reveal-phase="splash"] .create-catch-rings ellipse:nth-child(3) { animation-delay: 160ms; }
+.create-fishing-reveal[data-reveal-phase="splash"] .create-catch-rig { animation: create-catch-line-pull 200ms cubic-bezier(.3, 0, .2, 1) both; }
+.create-catch-silhouette { position: absolute; left: 50%; top: 50%; width: 72%; height: 76%; opacity: 0; animation: create-catch-arc 600ms cubic-bezier(.25, .55, .28, 1) both; }
+.create-catch-silhouette > div { width: 100%; height: 100%; filter: grayscale(1); opacity: .8; }
+.create-catch-spray { position: absolute; inset: 0; overflow: clip; }
+.create-catch-spray i { position: absolute; left: 50%; top: 76%; width: 3px; height: 5px; opacity: 0; background: currentColor; --spray-angle: calc(-160deg + var(--particle-index) * 28deg); }
+.create-fishing-reveal[data-reveal-phase="splash"] .create-catch-spray i { animation: create-catch-droplet 560ms cubic-bezier(.15, .5, .3, 1) both; animation-delay: calc(var(--particle-index) * 12ms); }
+
+@keyframes create-float-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(5px); } }
+@keyframes create-float-water { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
+@keyframes create-float-bite { 0%, 100% { transform: translateY(1px); } 50% { transform: translateY(8px); } }
+@keyframes create-catch-tug { 0%, 18% { transform: translate(0, 1px) rotate(0deg); } 28% { transform: translate(-3px, 7px) rotate(-3deg); } 42% { transform: translate(2px, -3px) rotate(2deg); } 57% { transform: translate(-2px, 9px) rotate(-2deg); } 72% { transform: translate(1px, -1px) rotate(1deg); } 100% { transform: translate(0, 12px) scaleY(.98); } }
+@keyframes create-catch-ring { 0% { opacity: .7; transform: scale(.7); } 100% { opacity: 0; transform: scale(3.2); } }
+@keyframes create-catch-line-pull { to { transform: translateY(-90%); opacity: 0; } }
+@keyframes create-catch-arc { 0% { opacity: 0; transform: translate(-90%, 44%) rotate(-38deg) scale(.3); } 18% { opacity: 1; } 65% { opacity: 1; transform: translate(-36%, -70%) rotate(8deg) scale(.65); } 100% { opacity: 1; transform: translate(-50%, -50%) rotate(0deg) scale(.78); } }
+@keyframes create-catch-droplet { 0% { opacity: 0; transform: rotate(var(--spray-angle)) translateX(3px); } 15% { opacity: .8; } 100% { opacity: 0; transform: rotate(var(--spray-angle)) translateX(min(26cqw, 28cqh)); } }
+@keyframes create-catch-settle { 0% { opacity: .8; transform: translate(-50%, -50%) scale(.78); } 38% { opacity: 1; transform: translate(-50%, -53%) scale(1.055); } 66% { transform: translate(-50%, -49%) scale(.985); } 100% { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+@keyframes create-catch-halo { 0% { opacity: 0; transform: translate(-50%, -50%) rotate(45deg) scale(.65); } 18% { opacity: .55; } 100% { opacity: 0; transform: translate(-50%, -50%) rotate(45deg) scale(1.6); } }
+@keyframes create-catch-pixel { 0% { opacity: 0; transform: rotate(var(--particle-angle)) translateX(12px) rotate(0deg); } 15% { opacity: 1; } 70% { opacity: .8; } 100% { opacity: 0; transform: rotate(var(--particle-angle)) translateX(var(--particle-distance)) rotate(90deg); } }
+
+.create-fishing-reveal[data-reduced-motion="true"] * { animation: none; }
+.create-fishing-reveal[data-reduced-motion="true"] :is(.create-catch-tension, .create-catch-splash, .create-catch-halo, .create-catch-particles) { display: none; }
+@media (max-width: 640px) {
+  .create-fishing-float-art { width: 96px; height: 80px; }
+  .create-fishing-reveal { height: 150px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .create-fishing-reveal *, .create-fishing-float-art .create-fishing-float, .create-fishing-float-art .create-fishing-float-water { animation: none; }
+}
