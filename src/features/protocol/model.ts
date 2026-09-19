@@ -131,6 +131,24 @@ export function claimableWeth(account: ProtocolAccount): number {
   return account.rewardAccounting === "friend" ? friends : (account.rewardCreditWeth ?? 0) + friends;
 }
 
+/**
+ * Every outstanding claim with a nonzero balance, for a single "claim all" action.
+ * Friend accounting claims per-(friend, asset); holder accounting claims a single
+ * wallet-level balance per asset instead, with no friendId.
+ */
+export function claimTargets(account: ProtocolAccount): PortfolioAction[] {
+  if (account.rewardAccounting === "friend") {
+    return account.friends.flatMap(friend => [
+      ...(friend.earnings > 0 ? [{ kind: "claim" as const, friendId: friend.id, collection: friend.collection, asset: "RF" as const }] : []),
+      ...((friend.earningsWeth ?? 0) > 0 ? [{ kind: "claim" as const, friendId: friend.id, collection: friend.collection, asset: "WETH" as const }] : []),
+    ]);
+  }
+  return [
+    ...(claimableRewards(account) > 0 ? [{ kind: "claim" as const, asset: "RF" as const }] : []),
+    ...(claimableWeth(account) > 0 ? [{ kind: "claim" as const, asset: "WETH" as const }] : []),
+  ];
+}
+
 function selectedFriend(account: ProtocolAccount, action: PortfolioAction): PortfolioFriend | undefined {
   return action.kind === "hardwire" && action.friendId === undefined
     ? account.friends.find(friend => friend.collection === "Generations" && !friend.hardwired)
@@ -231,4 +249,3 @@ export interface SwapQuote {
   enabled: boolean;
   reason?: string;
 }
-

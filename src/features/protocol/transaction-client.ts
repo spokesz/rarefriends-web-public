@@ -56,9 +56,14 @@ export function portfolioTransferPlan(address: Address, action: PortfolioAction,
     steps: [{ label: title, transaction: { from: address, to, data, value: "0x0", chainId: toHex(config.chainId) } }] };
 }
 
+export function isUserCancellation(cause: unknown): boolean {
+  const error = cause as { message?: string; code?: number; cause?: { code?: number } };
+  return error?.code === 4001 || error?.cause?.code === 4001 || /user rejected|user denied/i.test(error?.message ?? "");
+}
+
 export function transactionError(cause: unknown): string {
-  const error = cause as { shortMessage?: string; message?: string; code?: number; cause?: { code?: number } };
-  if (error?.code === 4001 || error?.cause?.code === 4001 || /user rejected|user denied/i.test(error?.message ?? "")) return "Transaction cancelled in your wallet. Confirmed earlier steps remain complete; you can review and continue.";
+  if (isUserCancellation(cause)) return "Transaction cancelled in your wallet. Confirmed earlier steps remain complete; you can review and continue.";
+  const error = cause as { shortMessage?: string; message?: string };
   return error?.shortMessage ?? error?.message?.split("\n")[0] ?? "The transaction could not be completed.";
 }
 

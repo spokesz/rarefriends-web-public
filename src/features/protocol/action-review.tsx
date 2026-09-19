@@ -44,7 +44,7 @@ export function ActionReview({ action, account, onBack, onDone }: {
     <div className="app-fp-review-buttons"><Button size="sm" disabled={busy} onClick={onBack}>{copy.back}</Button>
       {query.error && <Button size="sm" disabled={busy} onClick={() => void query.refetch()}>{copy.refresh}</Button>}
       <Button size="sm" variant="primary" preserveCase disabled={busy || !quote?.enabled || query.isFetching || (convert && !accepted)} onClick={async () => {
-        if (await executeAction(action, query.data)) onDone();
+        if ((await executeAction(action, query.data)).ok) onDone();
         else await query.refetch();
       }}>{busy ? copy.confirming : `confirm ${action.kind}`}</Button>
     </div>

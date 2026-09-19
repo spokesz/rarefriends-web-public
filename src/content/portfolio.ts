@@ -23,6 +23,8 @@ export const portfolioContent = {
     claimable: "Claimable",
     pending: "Pending",
     apy: "Your APY",
+    claimAll: "Claim all",
+    claimingAll: "Claiming…",
     loading: "loading rewards…",
     unavailable: "rewards unavailable",
     estimate: "live estimate weight-based",

@@ -141,8 +141,11 @@ async function prepareAction(context: ChainContext, request: PrepareRequest, blo
     if (collection !== "Generations") throw new ProtocolError("Only a temporary Generations friend can be hardwired.");
     const temporaryId = await contractRead<bigint>(context, "Generations", "temporaryFriend", [sender], block);
     if (temporaryId === 0n || (action.friendId !== undefined && temporaryId !== id)) throw new ProtocolError("The selected temporary friend is no longer available. Refresh your portfolio.", 409);
+        const denominations = await Promise.all(
+      Array.from({ length: 6 }, (_, i) => contractRead<bigint>(context, "Generations", "denomination", [i + 1], block))
+    );
     for (let generation = 1; generation <= 6; generation++) {
-      const amount = await contractRead<bigint>(context, "Generations", "denomination", [generation], block);
+      const amount = denominations[generation - 1];
       if (balance >= amount) { expectedGeneration = generation; cost = amount; break; }
     }
     if (expectedGeneration === undefined) throw new ProtocolError("Hold at least one full $RAREFRIENDS to hardwire.");

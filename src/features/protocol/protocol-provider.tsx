@@ -10,7 +10,7 @@ import { Dialog } from "@/src/components/ui/dialog";
 import { usePublicWallet } from "@/src/wallet/wallet-provider";
 import { RF_SYMBOL, type ProtocolAccount, type PortfolioAction } from "./model";
 import type { ProtocolState, ProtocolConfig, PreparedPlan, PublicProtocolSnapshot } from "./types";
-import { portfolioTransferPlan, prepareTransaction, submitPlan, transactionError, type TransactionProgress } from "./transaction-client";
+import { isUserCancellation, portfolioTransferPlan, prepareTransaction, submitPlan, transactionError, type TransactionProgress } from "./transaction-client";
 import { readWalletBalances, readServerProtocolState, type WalletBalances } from "../../wallet/wallet-chain";
 import { walletRpcScope } from "../../wallet/wallet-rpc";
 import { protocolDisplayQueryKeys, protocolReadPolicy, sessionDisplayCache } from "./query-policy";
@@ -31,7 +31,7 @@ type Context = {
   busy: boolean;
   progress: TransactionProgress | null;
   refresh(): Promise<void>;
-  executeAction(action: PortfolioAction, plan?: PreparedPlan): Promise<boolean>;
+  executeAction(action: PortfolioAction, plan?: PreparedPlan): Promise<{ ok: boolean; cancelled: boolean }>;
   swap(buy: boolean, amount: string | number, slippageBps?: number, payWith?: "ETH" | "WETH"): void;
 };
 const ProtocolContext = createContext<Context | null>(null);
@@ -110,8 +110,8 @@ export function ProtocolProvider({ children }: { children: ReactNode }) {
     await refreshVisibleDisplays();
   }
 
-  async function executeAction(value: PortfolioAction, reviewedPlan?: PreparedPlan) {
-    if (locked.current) return false;
+  async function executeAction(value: PortfolioAction, reviewedPlan?: PreparedPlan): Promise<{ ok: boolean; cancelled: boolean }> {
+    if (locked.current) return { ok: false, cancelled: false };
     locked.current = true;
     setBusy(true);
     setMessage("");
@@ -127,10 +127,10 @@ export function ProtocolProvider({ children }: { children: ReactNode }) {
         onReceipt: async () => { received = true;
           await invalidateDisplays(); } });
       setMessage(`${plan.quote.title} · confirmed`);
-      return true;
+      return { ok: true, cancelled: false };
     } catch (error) {
       setMessage(transactionError(error));
-      return false;
+      return { ok: false, cancelled: isUserCancellation(error) };
     } finally {
       // Approvals and wrapping can confirm before the final action. Refresh once
       // after completion or partial failure, never between transaction steps.
