@@ -8,6 +8,7 @@ import { rewardApyPercent } from "../src/lib/protocol/metrics.ts";
 import type { ChainIndex } from "../src/lib/protocol/indexer.ts";
 import type { ProtocolAccount } from "../src/features/protocol/model.ts";
 import type { ProtocolState } from "../src/features/protocol/types.ts";
+import * as protocolModel from "../src/features/protocol/model.ts";
 
 const source = await readFile(new URL("../src/server/protocol/wallet-read.ts", import.meta.url), "utf8");
 const compiled = transpileModule(source, { compilerOptions: { module: ModuleKind.CommonJS, target: ScriptTarget.ES2020 } }).outputText;
@@ -45,7 +46,7 @@ type Readers = {
   readWalletPortfolioState(address: Address, context: ChainContext): Promise<ProtocolState>;
 };
 
-/** Load the real reader and APY formula, isolating external services and wallet detail reads. */
+/** Load the real reader and APR formula, isolating external services and wallet detail reads. */
 function readers(options: { legacy?: boolean; failure?: Error; expired?: boolean } = {}) {
   const finish = options.expired ? at - 1n : at + 3_600n;
   const rfStream = [20n * UNIT, UNIT / 100_000n, finish, at - 60n];
@@ -74,7 +75,7 @@ function readers(options: { legacy?: boolean; failure?: Error; expired?: boolean
   }]));
   const manifest = {
     chainId: 4663, deploymentBlock: "100", contracts,
-    // Deliberately wrong legacy data must never become a fallback or APY denominator.
+    // Deliberately wrong legacy data must never become a fallback or APR denominator.
     ...(options.legacy ? { protocolSnapshot: { ...totals, activationPaid: String(UNIT), friendsPlaying: 999, activatedGenesis: 998 } } : {}),
   };
   const context = {
@@ -154,12 +155,40 @@ for (const legacy of [true, false]) {
   });
 }
 
-test("expired streams retain pending fees in APY and exclude their old rates", async () => {
+test("active stream APR excludes pending fees", () => {
+  const rates = { rateRf: UNIT / 100_000n, rateWeth: UNIT / 1_000_000_000n, pendingRf: 20n * UNIT, pendingWeth: UNIT / 100n };
+  const expected = (0.00001 * 2 + 0.000000001 * 2_000) * 86_400 * 365 / 2_000 * 100;
+  assert.ok(Math.abs(rewardApyPercent(rates, 1_000n * UNIT, prices) - expected) < 1e-10);
+  assert.equal(rewardApyPercent(rates, 1_000n * UNIT, prices), rewardApyPercent({ ...rates, pendingRf: 0n, pendingWeth: 0n }, 1_000n * UNIT, prices));
+});
+
+test("portfolio APR uses active rewards only and preserves the activation spending denominator", async () => {
+  const source = await readFile(new URL("../src/features/portfolio/analytics-data.ts", import.meta.url), "utf8");
+  const compiled = transpileModule(source, { compilerOptions: { module: ModuleKind.CommonJS, target: ScriptTarget.ES2020 } }).outputText;
+  const analytics = { exports: {} as typeof import("../src/features/portfolio/analytics-data.ts") };
+  new Function("require", "exports", compiled)((name: string) => {
+    assert.equal(name, "../protocol/model");
+    return protocolModel;
+  }, analytics.exports);
+  const reader = readers();
+  const state = await reader.readWalletPortfolioState(owner, reader.context);
+  const account = { ...state.account!, activationPaid: 100, friends: [
+    { id: 1, collection: "Genesis" as const, generation: 0, tier: 0, activated: true, hardwired: true, weight: 25, earnings: 0, portrait: 0 },
+  ] };
+  const protocol = { ...state.protocol, streams: [
+    { asset: "RF" as const, start: 0, end: 2, budget: 70, dripped: 0, pending: 1_000 },
+    { asset: "WETH" as const, start: 0, end: 1, budget: 10, dripped: 0, pending: 1 },
+  ] };
+  // 10% share of 70 RF/week, divided by 100 RF paid: 365% APR.
+  assert.ok(Math.abs(analytics.exports.holderApyPercent(account, protocol, 1)! - 365) < 1e-10);
+  assert.equal(analytics.exports.holderApyPercent(account, protocol, 2), 0);
+  assert.equal(analytics.exports.holderApyPercent({ ...account, activationPaid: 0 }, protocol, 1), null);
+});
+
+test("expired streams produce zero APR even with pending fees", async () => {
   const reader = readers({ expired: true });
   const state = await reader.readProtocolSnapshot(reader.context);
-  // Pending: 20 RF at $2 + 0.01 WETH at $2,000 = $60; activation cost is $2,000.
-  const expected = 0.03 * (365 / 7) * 100;
-  assert.ok(Math.abs(state.protocol.metrics.rewardApy! - expected) < 1e-10);
+  assert.equal(state.protocol.metrics.rewardApy, 0);
 });
 
 test("snapshot service failure propagates despite a populated legacy manifest", async () => {

@@ -82,15 +82,15 @@ export function rewardStreamProjection(cycles: readonly RewardStreamCycle[], liv
 
 const toUnits = (value: bigint) => Number(value) / 1e18;
 /**
- * APY = (this cycle's rewards + fees pending for the next allocation, USD) ÷ RF everyone paid to activate (USD)
+ * APR = active stream's weekly rewards (USD) ÷ RF everyone paid to activate (USD)
  * × (365 ÷ 7) × 100. The cycle rewards are the running allocation's per-second rates times a week, zero once the
- * cycle has finished; the pending pool is what the next Monday allocation will distribute.
+ * cycle has finished. Pending fees are excluded.
  */
 export function rewardApyPercent(rates: { rateRf: bigint; rateWeth: bigint; pendingRf: bigint; pendingWeth: bigint }, activationPaid: bigint, prices: { rfUsd: number; ethUsd: number }): number {
   const paid = toUnits(activationPaid) * prices.rfUsd;
   if (!(paid > 0)) return 0;
-  const weekly = (toUnits(rates.rateRf) * REWARD_WEEK_SECONDS + toUnits(rates.pendingRf)) * prices.rfUsd
-    + (toUnits(rates.rateWeth) * REWARD_WEEK_SECONDS + toUnits(rates.pendingWeth)) * prices.ethUsd;
+  const weekly = toUnits(rates.rateRf) * REWARD_WEEK_SECONDS * prices.rfUsd
+    + toUnits(rates.rateWeth) * REWARD_WEEK_SECONDS * prices.ethUsd;
   return weekly / paid * (365 / 7) * 100;
 }
 

@@ -22,8 +22,8 @@ export function getRewardOutlook(account: ProtocolAccount, protocol: ProtocolDat
 }
 
 /**
- * This wallet's APY: its share (by activated weight) of this cycle's rewards plus the fees pending for the next
- * allocation, in USD, ÷ the RF it paid to activate (USD) × (365 ÷ 7) × 100. Null until the snapshot, prices and a
+ * This wallet's APR: its share (by activated weight) of the active stream's weekly rewards,
+ * in USD, ÷ the RF it paid to activate (USD) × (365 ÷ 7) × 100. Null until the snapshot, prices and a
  * payment total are all known.
  */
 export function holderApyPercent(account: ProtocolAccount, protocol?: ProtocolData, now = Date.now()): number | null {
@@ -33,6 +33,6 @@ export function holderApyPercent(account: ProtocolAccount, protocol?: ProtocolDa
   const totalWeight = protocol.metrics.genesisWeight + protocol.metrics.generationsWeight;
   if (!(rfUsd > 0) || !(ethUsd > 0) || !(totalWeight > 0)) return null;
   const weight = account.friends.reduce((sum, friend) => sum + friendWeight(friend), 0);
-  const weekly = protocol.streams.reduce((sum, stream) => sum + ((stream.end > now ? stream.budget : 0) + stream.pending) * weight / totalWeight * (stream.asset === "RF" ? rfUsd : ethUsd), 0);
+  const weekly = protocol.streams.reduce((sum, stream) => sum + (stream.end > now ? stream.budget : 0) * weight / totalWeight * (stream.asset === "RF" ? rfUsd : ethUsd), 0);
   return weekly / (paid * rfUsd) * (365 / 7) * 100;
 }

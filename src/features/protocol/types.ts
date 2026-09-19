@@ -18,7 +18,7 @@ export interface ProtocolData {
   metrics: { initialSupply: number; supplyBurned: number; vaultInventory: number; ammVolumeEth: number; ammVolumeUsd: number; activatedGenesis: number; genesisWeight: number; generationsWeight: number; distributedRf: number; distributedWeth: number; distributedUsd: number;
     /** Unreleased reward-stream balance still to pay, and this UTC week's dripped rewards; when available in the current snapshot. */
     streamRemainingRf?: number; streamRemainingWeth?: number; streamRemainingUsd?: number; weekRewardsRf?: number; weekRewardsWeth?: number; weekRewardsUsd?: number;
-    /** Annualized active and pending rewards over cumulative RF activation payments, in percent. */
+    /** Annualized active stream rewards over cumulative RF activation payments, in percent. */
     rewardApy?: number;
     /** Friends (Genesis + Generations) currently holding an active reward position. */
     friendsPlaying?: number };
