@@ -9,7 +9,7 @@ import { createContent, createLinks } from "@/src/content/create";
 
 export function BuilderLeaderboard() {
   const copy = createContent.leaderboard;
-  const [activeCategory, setActiveCategory] = useState(0);
+  const [activeCategory, setActiveCategory] = useState(copy.categories.findIndex(category => category.id === "activity"));
   const tabs = useRef<(HTMLButtonElement | null)[]>([]);
 
   function moveTab(event: KeyboardEvent<HTMLButtonElement>, index: number) {

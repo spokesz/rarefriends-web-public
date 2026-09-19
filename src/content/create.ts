@@ -16,7 +16,7 @@ export const createContent = {
     description: "1 prompt. 1 Rare Friend.",
     detail: "Bring an idea. Your AI handles the code. We handle the distribution.",
     action: "Copy the prompt",
-    note: "Minigames, Gacha, Tamas, Virtual-pet, Idles, Familiar Care, Anything.",
+    note: "Minigames, Gachas, Tamas, Virtual-pet, Idles, Familiar Care, Launchpad, Anything.",
     scroll: "See more",
   },
   stats: [
@@ -70,7 +70,7 @@ export const createContent = {
     },
     future: {
       label: "Potential",
-      title: "Create Token Economies",
+      title: "Launch Token Economies",
       items: [
         "Deploy any asset type for your experience.",
         "Pair it with $RAREFRIENDS to get a market.",

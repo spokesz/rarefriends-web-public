@@ -106,5 +106,5 @@ test("starter prompt uses the supplied concise text and repository links", () =>
   assert.doesNotMatch(html, /<details|<textarea/);
   assert.doesNotMatch(html, /FriendSDK on GitHub/);
   assert.match(html, /Basic toolkit to play with Friends/);
-  assert.match(html, /Create Token Economies/);
+  assert.match(html, /Launch Token Economies/);
 });
