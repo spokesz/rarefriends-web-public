@@ -9,6 +9,8 @@ import type { Size, Variant } from "./types";
 type ButtonProps = {
   children: ReactNode;
   href?: string;
+  target?: string;
+  rel?: string;
   download?: boolean | string;
   variant?: Variant;
   size?: Size;
@@ -27,6 +29,8 @@ type ButtonProps = {
 export function Button({
   children,
   href,
+  target,
+  rel,
   download,
   variant = "secondary",
   size = "md",
@@ -68,7 +72,7 @@ export function Button({
 
   if (href && !disabled && download !== undefined && download !== false) {
     return (
-      <a href={href} download={download} {...attrs}>
+      <a href={href} target={target} rel={rel} download={download} {...attrs}>
         {content}
       </a>
     );
@@ -76,7 +80,7 @@ export function Button({
 
   if (href && !disabled) {
     return (
-      <Link href={href} {...attrs}>
+      <Link href={href} target={target} rel={rel} {...attrs}>
         {content}
       </Link>
     );

@@ -1,6 +1,7 @@
 "use client";
 
 import { portfolioContent as copy } from "@/src/content/portfolio";
+import { Button } from "@/src/components/ui/button";
 import { useUsdFormat } from "../protocol/use-usd-format";
 import { formatAmount, getRewardOutlook, holderApyPercent } from "./analytics-data";
 import { useProtocol } from "../protocol/protocol-provider";
@@ -38,7 +39,7 @@ export function PortfolioSummary({ account, earningFilter, onFilter }: {
         <span>{copy.summary.apy}</span>
         <strong>{apy !== null ? `${formatAmount(apy, 2)}%` : "—"}</strong>
         <small>{apy !== null ? copy.summary.apyAnnualized : account && protocol ? copy.summary.apyBasis : emptyRewards}</small>
-        {account?.address && <a className="app-pf-share" href={`https://rare-friends-cards.vercel.app/card/${account.address}`} target="_blank" rel="noopener noreferrer">{copy.summary.share}</a>}
+        {account?.address && <Button size="sm" href={`https://rare-friends-cards.vercel.app/card/${account.address}`} target="_blank" rel="noopener noreferrer">{copy.summary.share}</Button>}
       </div>
     </div>
   </section>;
