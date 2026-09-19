@@ -55,7 +55,7 @@ export const metricsContent = {
   weight: { label: "activated weight", detail: "total reward weight · RF-denominated" },
   paid: { label: "total rewards paid for this week", detail: "Monday–Sunday UTC" },
   pending: { label: "total rewards to pay", detail: "streaming + awaiting allocation" },
-  apy: { label: "APY", detail: "this cycle + pending ÷ RF paid to activate · annualized" },
+  apy: { label: "APR", detail: "current active stream ÷ RF paid to activate · annualized" },
   cached: "updates unavailable · cached",
   onchain: "onchain",
   cachedPrice: " · cached USD price",
