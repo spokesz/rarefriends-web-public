@@ -129,12 +129,13 @@ export async function submitPlan({ wallet, config, input, plan, onProgress, onRe
       throw new Error("Wallet or network changed. Review the transaction again.");
     }
   }
-  const pendingKey = `rarefriends.pending.${config.chainId}.${owner}`;
-  // Claims and withdrawals are repeatable, so they neither set nor obey the pending-payment guard.
+  const pendingKey = `${config.chainId}.${owner}`;
+  // Only an upgrade, promotion or swap can charge again when repeated; the contracts revert every
+  // other duplicate. The guard lasts for this page only, so a stale hash can never outlive a reload.
+  const guarded = Boolean(input.swap) || input.action?.kind === "upgrade" || input.action?.kind === "promote";
   const rememberHash = (hash: string | null) => {
-    if (immediate) return;
+    if (!guarded) return;
     if (hash) pendingTransactions.set(pendingKey, hash); else pendingTransactions.delete(pendingKey);
-    try { if (hash) localStorage.setItem(pendingKey, hash); else localStorage.removeItem(pendingKey); } catch {}
   };
   async function waitForConfirmation(initialHash: Hex, label: string, step: number, total: number) {
     let hash = initialHash;
@@ -162,9 +163,8 @@ export async function submitPlan({ wallet, config, input, plan, onProgress, onRe
     }
   }
   await checkWallet();
-  let earlierHash: string | null = immediate ? null : pendingTransactions.get(pendingKey) ?? null;
-  try { if (!immediate) earlierHash = localStorage.getItem(pendingKey) ?? earlierHash; } catch {}
-  if (earlierHash && /^0x[0-9a-fA-F]{64}$/.test(earlierHash)) {
+  const earlierHash = guarded ? pendingTransactions.get(pendingKey) : undefined;
+  if (earlierHash) {
     onProgress({ title: plan.quote.title, label: "Checking your previously submitted transaction", step: 0, total: plan.steps.length, hash: earlierHash });
     const receipt = await waitForConfirmation(earlierHash as Hex, "Previous transaction", 0, plan.steps.length);
     await onReceipt(receipt.blockNumber);

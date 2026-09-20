@@ -11,12 +11,16 @@ const compiled = transpileModule(source, { compilerOptions: { module: ModuleKind
 const clientModule = { exports: {} };
 const confirmed = async () => ({ status: "success", blockNumber: 2n });
 let waitForReceipt = confirmed;
+let reviewed: unknown;
 const dependencies: Record<string, unknown> = {
   viem,
-  "../../wallet/wallet-chain": {},
+  "../../wallet/wallet-chain": { walletChainContext: () => ({}) },
   "../../wallet/wallet-rpc": { walletRpcClient: () => ({
     waitForTransactionReceipt: () => waitForReceipt(),
+    estimateGas: async () => 21_000n,
   }) },
+  // Paid actions re-read their quote before the final signature; the reviewed plan stands in for it.
+  "@/src/lib/protocol/transactions": { prepareInput: (input: unknown) => input, prepareProtocol: async () => reviewed },
 };
 new Function("require", "exports", compiled)((name: string) => {
   assert.ok(name in dependencies, `Unexpected dependency: ${name}`);
@@ -103,6 +107,70 @@ for (const kind of ["claim", "withdraw"] as const) {
     waitForReceipt = confirmed;
     await submit(kind, sent);
     assert.deepEqual(sent, ["eth_sendTransaction", "eth_sendTransaction"]);
+  });
+}
+
+type Paid = { swap: true } | { kind: "upgrade" | "promote" | "activate" | "hardwire" | "convert" };
+/** Submits a one-step paid plan; `session` lets a test change the wallet while its receipt is awaited. */
+function submitPaid(paid: Paid, sent: string[], labels: string[], session = { id: 1 }) {
+  const input = "swap" in paid ? { address, swap: { buy: true, amount: "1", slippageBps: 100 } }
+    : { address, action: { kind: paid.kind, collection: "Genesis" as const, friendId: 7 } };
+  const title = "swap" in paid ? "Swap" : paid.kind;
+  const plan = { address, chainId: 1, blockNumber: "1", request: input, exact: { cost: "0", receive: "0" },
+    quote: { title, description: title, asset: "RF", cost: 0, receive: 0, enabled: true },
+    steps: [{ label: title, transaction: { from: address, to: config.contracts.ActivationManager, data: "0x", value: "0x0", chainId: "0x1" } }] };
+  reviewed = plan;
+  return submitPlan({ config, input, plan: plan as never, onProgress: progress => { labels.push(progress.label); }, onReceipt: async () => {},
+    wallet: { address, chainId: "0x1", getSession: () => session.id, request: async method => {
+      if (method === "eth_chainId") return "0x1";
+      if (method === "eth_accounts") return [address];
+      sent.push(method);
+      return `0x${"c".repeat(64)}`;
+    } } });
+}
+
+test("no action reads, writes or obeys a pending hash in localStorage", async t => {
+  const touched: string[] = [];
+  const stale = `0x${"b".repeat(64)}`;
+  Object.defineProperty(globalThis, "localStorage", { configurable: true, value: {
+    getItem: (key: string) => { touched.push(key); return stale; },
+    setItem: (key: string) => { touched.push(key); },
+    removeItem: (key: string) => { touched.push(key); },
+  } });
+  t.after(() => { delete (globalThis as { localStorage?: unknown }).localStorage; });
+  for (const paid of [{ swap: true }, { kind: "upgrade" }, { kind: "promote" }, { kind: "activate" }, { kind: "hardwire" }, { kind: "convert" }] as Paid[]) {
+    const sent: string[] = [], labels: string[] = [];
+    await submitPaid(paid, sent, labels);
+    assert.deepEqual(sent, ["eth_sendTransaction"], JSON.stringify(paid));
+    assert.ok(!labels.some(label => /previous/i.test(label)), JSON.stringify(paid));
+  }
+  assert.deepEqual(touched, []);
+});
+
+for (const held of [{ kind: "upgrade" }, { kind: "promote" }, { swap: true }] as Paid[]) {
+  test(`an unsettled swap holds ${"swap" in held ? "a swap" : `an ${held.kind}`} on this page, and nothing the contracts already reject`, async t => {
+    // The wallet changes while the swap awaits its receipt, so its hash is left unsettled.
+    const session = { id: 1 };
+    waitForReceipt = async () => { session.id = 2; throw new Error("timed out"); };
+    t.after(() => { waitForReceipt = confirmed; });
+    const sent: string[] = [];
+    await assert.rejects(submitPaid({ swap: true }, sent, [], session), /wallet or network changed/);
+    waitForReceipt = confirmed;
+
+    // A repeated activation, hardwire or conversion reverts onchain, and claims are repeatable: never held.
+    for (const kind of ["activate", "hardwire", "convert"] as const) await submitPaid({ kind }, sent, [], session);
+    await submit("claim", sent);
+    assert.equal(sent.length, 5);
+
+    // A repeated upgrade, promotion or swap can charge again: the unsettled hash is checked before any signature.
+    const labels: string[] = [];
+    await assert.rejects(submitPaid(held, sent, labels, session), /previous transaction has settled/);
+    assert.deepEqual(labels, ["Checking your previously submitted transaction"]);
+    assert.equal(sent.length, 5, "nothing was signed while the earlier hash was unsettled");
+
+    // Settled: the guard is clear and the action goes to the wallet.
+    await submitPaid(held, sent, [], session);
+    assert.equal(sent.length, 6);
   });
 }
 
