@@ -9,11 +9,13 @@ import type { ProtocolConfig, ProtocolState } from "../src/features/protocol/typ
 const source = await readFile(new URL("../src/features/protocol/transaction-client.ts", import.meta.url), "utf8");
 const compiled = transpileModule(source, { compilerOptions: { module: ModuleKind.CommonJS, target: ScriptTarget.ES2020 } }).outputText;
 const clientModule = { exports: {} };
+const confirmed = async () => ({ status: "success", blockNumber: 2n });
+let waitForReceipt = confirmed;
 const dependencies: Record<string, unknown> = {
   viem,
   "../../wallet/wallet-chain": {},
   "../../wallet/wallet-rpc": { walletRpcClient: () => ({
-    waitForTransactionReceipt: async () => ({ status: "success", blockNumber: 2n }),
+    waitForTransactionReceipt: () => waitForReceipt(),
   }) },
 };
 new Function("require", "exports", compiled)((name: string) => {
@@ -65,6 +67,43 @@ for (const asset of ["RF", "WETH"] as const) {
       assert.equal(receipts, 1);
     });
   }
+}
+
+function submit(kind: "claim" | "withdraw", sent: string[]) {
+  const action = { kind, asset: "WETH" as const, collection: "Genesis" as const, friendId: 7 };
+  return submitPlan({ config, input: { address, action }, plan: portfolioTransferPlan(address, action, config, snapshot),
+    wallet: { address, chainId: "0x1", getSession: () => 1, request: async method => { sent.push(method); return `0x${"a".repeat(64)}`; } },
+    onProgress: () => {}, onReceipt: async () => {} });
+}
+
+for (const kind of ["claim", "withdraw"] as const) {
+  test(`${kind} ignores a stored pending transaction, never touches localStorage, and can repeat`, async t => {
+    const touched: string[] = [];
+    const stored = new Map([[`rarefriends.pending.1.${address}`, `0x${"b".repeat(64)}`]]);
+    Object.defineProperty(globalThis, "localStorage", { configurable: true, value: {
+      getItem: (key: string) => { touched.push(key); return stored.get(key) ?? null; },
+      setItem: (key: string, value: string) => { touched.push(key); stored.set(key, value); },
+      removeItem: (key: string) => { touched.push(key); stored.delete(key); },
+    } });
+    t.after(() => { delete (globalThis as { localStorage?: unknown }).localStorage; });
+    const sent: string[] = [];
+    await submit(kind, sent);
+    await submit(kind, sent);
+    assert.deepEqual(sent, ["eth_sendTransaction", "eth_sendTransaction"]);
+    assert.deepEqual(touched, []);
+  });
+
+  test(`an unconfirmed ${kind} releases the UI and can be sent again`, async t => {
+    let now = 0;
+    t.mock.method(Date, "now", () => now += 60_000);
+    waitForReceipt = async () => { throw new Error("timed out"); };
+    t.after(() => { waitForReceipt = confirmed; });
+    const sent: string[] = [];
+    await assert.rejects(submit(kind, sent), /not confirmed yet.*submit it again/);
+    waitForReceipt = confirmed;
+    await submit(kind, sent);
+    assert.deepEqual(sent, ["eth_sendTransaction", "eth_sendTransaction"]);
+  });
 }
 
 test("withdrawals require exact snapshot balances instead of rounding display values", () => {

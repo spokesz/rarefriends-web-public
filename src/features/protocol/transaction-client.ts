@@ -130,13 +130,16 @@ export async function submitPlan({ wallet, config, input, plan, onProgress, onRe
     }
   }
   const pendingKey = `rarefriends.pending.${config.chainId}.${owner}`;
+  // Claims and withdrawals are repeatable, so they neither set nor obey the pending-payment guard.
   const rememberHash = (hash: string | null) => {
+    if (immediate) return;
     if (hash) pendingTransactions.set(pendingKey, hash); else pendingTransactions.delete(pendingKey);
     try { if (hash) localStorage.setItem(pendingKey, hash); else localStorage.removeItem(pendingKey); } catch {}
   };
   async function waitForConfirmation(initialHash: Hex, label: string, step: number, total: number) {
     let hash = initialHash;
     let replacedWithDifferentCall = false;
+    const started = Date.now();
     // Once broadcast, a read timeout must never make the same payment retryable.
     for (;;) {
       let receipt;
@@ -147,8 +150,9 @@ export async function submitPlan({ wallet, config, input, plan, onProgress, onRe
           replacedWithDifferentCall ||= replacement.reason !== "repriced";
         } });
       } catch {
+        if (immediate && (wallet.getSession() !== session || Date.now() - started >= 60_000)) throw new Error(`${label} is not confirmed yet. Check your wallet's activity; you can submit it again at any time.`);
         if (wallet.getSession() !== session) throw new Error(`Your wallet or network changed while transaction ${hash} was pending. Reconnect this wallet on ${config.chainName} to check its receipt; do not resend it.`);
-        onProgress({ title: plan.quote.title, label: `${label} · still awaiting its receipt; do not resend`, step, total, hash });
+        onProgress({ title: plan.quote.title, label: `${label} · still awaiting its receipt${immediate ? "" : "; do not resend"}`, step, total, hash });
         await new Promise(resolve => setTimeout(resolve, 3_000));
         continue;
       }
@@ -158,10 +162,9 @@ export async function submitPlan({ wallet, config, input, plan, onProgress, onRe
     }
   }
   await checkWallet();
-  let earlierHash: string | null = pendingTransactions.get(pendingKey) ?? null;
-  try { earlierHash = localStorage.getItem(pendingKey) ?? earlierHash; } catch {}
+  let earlierHash: string | null = immediate ? null : pendingTransactions.get(pendingKey) ?? null;
+  try { if (!immediate) earlierHash = localStorage.getItem(pendingKey) ?? earlierHash; } catch {}
   if (earlierHash && /^0x[0-9a-fA-F]{64}$/.test(earlierHash)) {
-    if (immediate) throw new Error("A previous transaction is still pending. Wait for it to settle before retrying.");
     onProgress({ title: plan.quote.title, label: "Checking your previously submitted transaction", step: 0, total: plan.steps.length, hash: earlierHash });
     const receipt = await waitForConfirmation(earlierHash as Hex, "Previous transaction", 0, plan.steps.length);
     await onReceipt(receipt.blockNumber);
