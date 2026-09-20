@@ -1,9 +1,15 @@
+/**
+ * The browser cancels in-flight reads when a wallet app or deep link takes over the tab.
+ * That is not a failed read, so it is read again; every other error still surfaces at once.
+ */
+export const retryCancelledRead = (failures: number, error: Error) => error.name === "AbortError" && failures < 3;
+
 /** Display snapshots live in the QueryClient for this browser session, not a timer. */
 export const sessionDisplayCache = {
   gcTime: Infinity,
   refetchInterval: false,
   refetchOnReconnect: false,
-  retry: false,
+  retry: retryCancelledRead,
 } as const;
 
 export const metadataReadPolicy = {
